@@ -1,4 +1,7 @@
 """CPU functionality."""
+LDI = 0b10000010 # Set value of a register to integer
+PRN = 0b01000111 # Print numeric value
+HLT = 0b00000001 # exit the emulator
 
 import sys
 
@@ -7,7 +10,25 @@ class CPU:
 
     def __init__(self):
         """Construct a new CPU."""
-        pass
+        # pass
+        # general reg
+        self.reg = [0] * 8
+        # holds 256 bytes
+        self.ram = [0] * 256
+        # program counter
+        self.pc = 0 
+        
+    def ram_read(self, mar):
+        # accept the address to read
+        # MAR holds address that is being read or written
+        mdr = self.ram[mar]
+        # return stored value
+        # MDR holds data that was read or wrote
+        return mdr
+    
+    def ram_write(self, mar, value):
+        # should accept a value to write and adress to write it
+        self.ram[mar] = value
 
     def load(self):
         """Load a program into memory."""
@@ -62,4 +83,27 @@ class CPU:
 
     def run(self):
         """Run the CPU."""
-        pass
+        running = True
+
+        while running: 
+            opcode = self.ram[self.pc]
+            operand_a = self.ram_read(self.pc + 1) 
+            operand_b = self.ram_read(self.pc + 2)
+            # sets a specified register to a specified value
+            if opcode == LDI: 
+                self.reg[operand_a] = operand_b
+                # skip down 3 to PRN
+                self.pc += 3 
+                
+            # prints the numeric value stored in a register
+            elif opcode == PRN: 
+                print(self.reg[operand_a])
+                #skip down 2 to HLT
+                self.pc += 2 
+
+            elif opcode == HLT:
+                running = False 
+
+            else:
+                print(f"Unknown instruction: {opcode}")
+                sys.exit(1)
