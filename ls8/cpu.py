@@ -1,38 +1,35 @@
 """CPU functionality."""
-LDI = 0b10000010 # Set value of a register to integer
-PRN = 0b01000111 # Print numeric value
-HLT = 0b00000001 # exit the emulator
 
 import sys
+
+program = []
 
 class CPU:
     """Main CPU class."""
 
     def __init__(self):
         """Construct a new CPU."""
-        # pass
-        # general reg
-        self.reg = [0] * 8
-        # holds 256 bytes
-        self.ram = [0] * 256
-        # program counter
-        self.pc = 0 
-        
-    def ram_read(self, mar):
-        # accept the address to read
-        # MAR holds address that is being read or written
-        mdr = self.ram[mar]
-        # return stored value
-        # MDR holds data that was read or wrote
-        return mdr
-    
-    def ram_write(self, mar, value):
-        # should accept a value to write and adress to write it
-        self.ram[mar] = value
+        self.ram = [0] * 256  # creates ram with 256 bytes of memory
+        self.pc = 0  # our counter
+        self.reg = [0] * 8  # general registry with 8 slots
+        # instruction code link with shorter name for development sake
+        self.instructions = {"LDI": 0b10000010,
+                            "HLT": 0b00000001,
+                            "PRN": 0b01000111,
+                            "MUL": 0b10100010,
+                            }  # instruction code link with short name for development sake
 
+    def ram_read(self, ma):
+        # ma = Memory Access
+        return self.ram[ma]
+
+    def ram_write(self, ma, v):
+        # v = value
+        self.ram[ma] = v
+        
+        
     def load(self):
         """Load a program into memory."""
-
         address = 0
 
         # For now, we've just hardcoded a program:
@@ -46,6 +43,18 @@ class CPU:
             0b00000000,
             0b00000001, # HLT
         ]
+        # if len(sys.argv) > 1:
+        #     program_file = sys.argv[1]
+        #     with open(program_file) as f:
+        #         for line in f:
+        #             line = line.split('#')
+        #             line = line[0].strip()
+        #             if line == '':
+        #                 continue
+        #             line = int(line, 2)
+        #             program.append(line)
+        # else:
+        #     return
 
         for instruction in program:
             self.ram[address] = instruction
@@ -85,25 +94,22 @@ class CPU:
         """Run the CPU."""
         running = True
 
-        while running: 
-            opcode = self.ram[self.pc]
-            operand_a = self.ram_read(self.pc + 1) 
+        while running:
+            IR = self.ram_read(self.pc)
+            operand_a = self.ram_read(self.pc + 1)
             operand_b = self.ram_read(self.pc + 2)
-            # sets a specified register to a specified value
-            if opcode == LDI: 
+            if IR == self.instructions["HLT"]:
+                running = False
+                self.pc += 1
+            elif IR == self.instructions["LDI"]:
                 self.reg[operand_a] = operand_b
-                # skip down 3 to PRN
-                self.pc += 3 
-                
-            # prints the numeric value stored in a register
-            elif opcode == PRN: 
+                self.pc += 3
+            elif IR == self.instructions["PRN"]:
                 print(self.reg[operand_a])
-                #skip down 2 to HLT
-                self.pc += 2 
-
-            elif opcode == HLT:
-                running = False 
-
+                self.pc += 2
+            elif IR == self.instructions["MUL"]:
+                self.reg[operand_a] *= self.reg[operand_b]
+                self.pc += 3
             else:
-                print(f"Unknown instruction: {opcode}")
-                sys.exit(1)
+                print(f"Instruction unkown")
+                running = False
