@@ -13,7 +13,7 @@ class CPU:
         self.ram = [0] * 256  # creates ram with 256 bytes of memory
         self.pc = 0  # our counter
         self.reg = [0] * 8  # general registry with 8 slots
-
+        self.fl = 0b00000000
         # instruction code link with shorter name for development sake
         self.instructions = {"LDI": 0b10000010,
                              "HLT": 0b00000001,
@@ -23,6 +23,13 @@ class CPU:
                              "SUB": 0b10100001,
                              "POP": 0b01000110,
                              "PUSH": 0b01000101,
+                             "CALL": 0b01010000,
+                             "RET": 0b00010001,
+                             "DIV": 0b10100011,
+                             "JMP": 0b01010100,
+                             "CMP": 0b10100111,
+                             "JEQ": 0b01010101,
+                             "JNE": 0b01010110
                              }  # instruction code link with short name for development sake
         self.SP = 7
         self.reg[7] = 0xf4
@@ -51,7 +58,7 @@ class CPU:
         #     0b00000001, # HLT
         # ]
         if len(sys.argv) > 1:
-            print(sys.argv)
+            # print(sys.argv)
             program_file = sys.argv[1]
             with open(program_file) as f:
                 for line in f:
@@ -61,9 +68,9 @@ class CPU:
                         continue
                     line = int(line, 2)
                     program.append(line)
-                print(program)
-        else:
-            return
+                # print(program)
+        # else:
+        #     return
 
         for instruction in program:
             self.ram[address] = instruction
@@ -80,6 +87,17 @@ class CPU:
             self.pc += 3
         elif op == "MUL":
             self.reg[reg_a] *= self.reg[reg_b]
+            self.pc += 3
+            
+        elif op == "CMP":
+            if self.reg[reg_a] < self.reg[reg_b]:
+                self.fl = 0b00000100
+            elif self.reg[reg_a] > self.reg[reg_b]:
+                self.fl = 0b00000010
+            elif self.reg[reg_a] == self.reg[reg_b]:
+                self.fl = 0b00000001
+            else:
+                self.fl = 0b00000000
             self.pc += 3
 
         else:
@@ -150,7 +168,41 @@ class CPU:
                 self.reg[operand_a] = value
                 # increment the stack pointer
                 self.reg[self.SP] += 1
-                self.pc += 2    
+                self.pc += 2 
+            elif ir == self.instructions["CALL"]:
+                # set return address
+                # decrement stack pointer
+                ret_add = self.pc + 2
+                self.reg[self.SP] -= 1
+                self.ram[self.reg[self.SP]] = ret_add
+                # set pc to the value stored in the provided register
+                reg_num = self.ram[self.pc + 1]
+                dest_add = self.reg[reg_num]
+
+                self.pc = dest_add
+            elif ir == self.instructions["RET"]:
+                # pop the return address from the top of the stack
+                # then set the pc
+                ret_add = self.ram[self.reg[self.SP]]
+                self.reg[self.SP] += 1
+
+                self.pc = ret_add  
+                
+            elif ir == self.instructions["CMP"]:
+                 self.alu("CMP", operand_a, operand_b)
+            elif ir == self.instructions["JMP"]:
+                self.pc = self.reg[operand_a]
+            elif ir == self.instructions["JEQ"]:
+                if self.fl == 0b00000001:
+                    self.pc = self.reg[operand_a]
+                else:
+                    self.pc += 2
+            elif ir == self.instructions["JNE"]:
+                if self.fl & 0b00000001 == 0:
+                    self.pc = self.reg[operand_a]
+                else:
+                    self.pc += 2  
+            
             else:
                 print(f"Instruction")
                 running = False
